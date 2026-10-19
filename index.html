@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HireSmart AI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="HireSmart AI: AI-powered recruitment and headhunting for South African companies. Student prototype, JGA 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a hiring desk. Sticky nav, one "page" visible at a time (hash router), cards only for vacancies, candidates and plans. */
+:root {
+  --bg: #f2f4f3;
+  --surface: #ffffff;
+  --ink: #13232b;
+  --ink-2: #4a5a61;
+  --line: #d5dcdc;
+  --accent: #5b3fc0;        /* jacaranda */
+  --accent-ink: #ffffff;
+  --accent-soft: #ece8fa;
+  --gold: #b9780b;          /* highveld gold: scores */
+  --gold-soft: #fbf0d9;
+  --good: #1d7a4c;
+  --good-soft: #def2e7;
+  --chart-bg: #fcfcfb;
+  --display: "Bricolage Grotesque", "Arial Narrow", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a1f; --surface: #172630; --ink: #e8eef0; --ink-2: #a9b8bd; --line: #2b3d47;
+    --accent: #a08cf0; --accent-ink: #14102a; --accent-soft: #261f45;
+    --gold: #e7b04a; --gold-soft: #3a2d12; --good: #5fcf96; --good-soft: #14352a;
+    --chart-bg: #fcfcfb; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1a1f; --surface: #172630; --ink: #e8eef0; --ink-2: #a9b8bd; --line: #2b3d47;
+  --accent: #a08cf0; --accent-ink: #14102a; --accent-soft: #261f45;
+  --gold: #e7b04a; --gold-soft: #3a2d12; --good: #5fcf96; --good-soft: #14352a;
+  --chart-bg: #fcfcfb; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 17px/1.6 var(--body); margin: 0; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.3rem, 6vw, 4.2rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.7rem, 3.6vw, 2.5rem); font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.2rem; font-weight: 700; }
+p { margin: 0; max-width: 65ch; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.label { font: 600 0.75rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-2); }
+.small { font-size: 0.9rem; }
+
+/* header */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+header.site { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+header.site .wrap { display: flex; align-items: center; gap: 16px; padding-block: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font: 800 1.25rem var(--display); }
+.brand svg { flex: none; }
+nav.main { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+nav.main a { text-decoration: none; color: var(--ink-2); font-weight: 600; font-size: 0.95rem; padding: 6px 10px; border-radius: 6px; }
+nav.main a:hover { color: var(--ink); background: var(--bg); }
+nav.main a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+
+section.page { padding-block: 48px 72px; }
+.stack { display: grid; gap: 20px; align-content: start; }
+.consent { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
+.consent input { margin-top: 5px; flex: none; }
+.stack-lg { display: grid; gap: 40px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; text-decoration: none; font: 700 1rem var(--body); padding: 12px 20px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
+.hero > * { min-width: 0; }
+.hero .lede { font-size: 1.2rem; color: var(--ink-2); }
+.desk { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; box-shadow: 0 18px 40px -28px rgba(19,35,43,.45); }
+.vac { display: grid; gap: 4px; padding-bottom: 14px; border-bottom: 1px dashed var(--line); }
+.vac .title { font: 700 1.15rem var(--display); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 0.75rem var(--mono); padding: 3px 8px; border-radius: 99px; background: var(--bg); color: var(--ink-2); border: 1px solid var(--line); }
+.rank { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.rank li { display: grid; grid-template-columns: 28px 1fr 56px; align-items: center; gap: 10px; font-size: 0.95rem; }
+.rank .bar { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; margin-top: 4px; }
+.rank .bar span { display: block; height: 100%; background: var(--line); border-radius: 4px; }
+.rank li.sl .bar span { background: var(--gold); }
+.rank .score { font: 600 1rem var(--mono); text-align: right; }
+.rank li.sl .score { color: var(--gold); }
+.pill { display: inline-block; white-space: nowrap; font: 600 0.7rem var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; }
+.pill.sl { background: var(--gold-soft); color: var(--gold); }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.no { background: var(--bg); color: var(--ink-2); }
+
+/* stats strip */
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+.fact { padding: 20px 20px 20px 0; display: grid; gap: 6px; align-content: start; }
+.fact + .fact { padding-left: 20px; border-left: 1px solid var(--line); }
+.fact .num { font: 800 2.6rem/1 var(--display); color: var(--accent); }
+.fact cite { font-style: normal; font-size: 0.8rem; color: var(--ink-2); }
+
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; counter-reset: step; list-style: none; padding: 0; margin: 0; }
+.steps li { display: grid; gap: 8px; align-content: start; }
+.steps li::before { counter-increment: step; content: "Step " counter(step); font: 600 0.75rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.two > * { min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: grid; gap: 12px; align-content: start; }
+.card ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+
+/* persona */
+.persona { display: grid; grid-template-columns: 120px 1fr; gap: 20px; }
+.avatar { width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; font: 800 2.4rem var(--display); color: var(--accent-ink); background: var(--accent); }
+.avatar.alt { background: var(--gold); color: #1b1305; }
+dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+dl.kv dt { font: 600 0.8rem var(--mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: .05em; padding-top: 3px; }
+dl.kv dd { margin: 0; }
+
+/* services */
+.svc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.svc .card h3 { color: var(--ink); }
+
+/* forms */
+form.tool { display: grid; gap: 14px; }
+.field { display: grid; gap: 4px; }
+.field label, fieldset legend { font-weight: 700; font-size: 0.95rem; }
+input[type=text], input[type=number], input[type=email], select, textarea { font: inherit; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: #c0392b; }
+.err { color: #c0392b; font-size: 0.85rem; min-height: 1.2em; }
+fieldset { border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.checks label { font-weight: 400; display: flex; gap: 6px; align-items: center; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.result { background: var(--bg); border-radius: 8px; padding: 16px; display: grid; gap: 10px; }
+.big-score { font: 800 3.2rem/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+.break { display: grid; gap: 6px; }
+.break div { display: grid; grid-template-columns: 110px 1fr 54px; gap: 10px; align-items: center; font-size: 0.9rem; }
+.break .bar { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; }
+.break .bar span { display: block; height: 100%; background: var(--accent); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.78rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-2); }
+td.num, th.num { text-align: right; }
+
+/* pricing */
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.plan { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: grid; gap: 12px; align-content: start; }
+.plan.featured { border: 2px solid var(--accent); }
+.price { font: 800 2.4rem/1 var(--display); }
+.price small { font: 400 0.95rem var(--body); color: var(--ink-2); }
+
+figure { margin: 0; display: grid; gap: 8px; }
+figure img { background: var(--chart-bg); border-radius: 8px; border: 1px solid var(--line); width: 100%; height: auto; }
+figcaption { font-size: 0.85rem; color: var(--ink-2); }
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.note { border-left: 3px solid var(--gold); padding: 8px 14px; background: var(--gold-soft); border-radius: 0 8px 8px 0; font-size: 0.95rem; }
+ol.refs { display: grid; gap: 10px; padding-left: 22px; margin: 0; }
+ol.refs li { max-width: 80ch; overflow-wrap: anywhere; }
+
+footer { border-top: 1px solid var(--line); background: var(--surface); }
+footer .wrap { padding-block: 28px; display: grid; gap: 8px; font-size: 0.9rem; color: var(--ink-2); }
+
+/* chat */
+.chat-toggle { position: fixed; right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 20; border-radius: 99px; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); }
+.chat { position: fixed; right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); z-index: 20; width: min(360px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 50px -20px rgba(0,0,0,.5); display: grid; grid-template-rows: auto 1fr auto; max-height: min(520px, 70vh); }
+.chat header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.chat .log { padding: 12px 16px; overflow-y: auto; display: grid; gap: 8px; align-content: start; }
+.msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 0.95rem; line-height: 1.45; }
+.msg.bot { background: var(--bg); justify-self: start; }
+.msg.me { background: var(--accent); color: var(--accent-ink); justify-self: end; }
+.chat form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+.chat form input { flex: 1; min-width: 0; }
+.chat .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat .quick button { font: 600 0.78rem var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 4px 10px; border-radius: 99px; cursor: pointer; }
+.icon-btn { border: 0; background: transparent; color: var(--ink-2); font-size: 1.3rem; cursor: pointer; line-height: 1; padding: 4px; }
+
+
+/* CV checker */
+.cv-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 24px; align-items: start; }
+.cv-grid > * { min-width: 0; }
+.drop { display: grid; gap: 6px; place-items: center; text-align: center; padding: 28px 16px; border: 2px dashed var(--line); border-radius: var(--radius); background: var(--bg); cursor: pointer; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+.verdict-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.pill.close { background: var(--accent-soft); color: var(--accent); }
+tr.current td { background: var(--accent-soft); }
+@media (max-width: 900px) {
+  .hero, .two, .gallery, .cv-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr 1fr; }
+  .svc, .plans { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .facts { grid-template-columns: 1fr; }
+  .fact + .fact { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+  .steps, .row { grid-template-columns: 1fr; }
+  .persona { grid-template-columns: 1fr; }
+  nav.main { margin-left: 0; }
+  body { font-size: 16px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rank .bar span, .break .bar span { transition: width .5s ease; }
+}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#home" aria-label="HireSmart AI home">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="8" fill="var(--accent)"/><path d="M9 25V9M9 17h9M18 9v16" stroke="var(--accent-ink)" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="25.5" cy="11" r="3" fill="var(--gold)"/></svg>
+      HireSmart AI
+    </a>
+    <nav class="main" aria-label="Main">
+      <a href="#home">Home</a>
+      <a href="#about">About</a>
+      <a href="#persona">Customers</a>
+      <a href="#services">Services</a>
+      <a href="#cv">Check my CV</a>
+      <a href="#pricing">Revenue model</a>
+      <a href="#insights">Insights</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ================= HOME ================= -->
+<section class="page" id="page-home" data-page>
+  <div class="wrap stack-lg">
+    <div class="hero">
+      <div class="stack">
+        <span class="label">AI recruitment and headhunting · Made in Mzansi</span>
+        <h1>Find the right hire before the CV pile finds you.</h1>
+        <p class="lede">HireSmart AI reads every CV, scores each candidate against your vacancy and sends you a ranked shortlist. Your recruiter makes the final call. Job seekers use it for free.</p>
+        <div class="btn-row">
+          <a class="btn" href="#services">Try the match engine</a>
+          <a class="btn ghost" href="#pricing">See pricing in rand</a>
+          <a class="btn ghost" href="#cv">Job seeker? Check your CV</a>
+        </div>
+      </div>
+      <div class="desk" aria-label="Example shortlist">
+        <div class="vac">
+          <span class="label">Vacancy V01 · demo</span>
+          <span class="title">Junior Java Developer</span>
+          <span class="muted small">Jacaranda Tech (demo) · Pretoria, Gauteng · 2 yrs · <span class="mono">R22,000</span>/month</span>
+          <div class="chips"><span class="chip">Java</span><span class="chip">SQL</span><span class="chip">Spring Boot</span><span class="chip">Git</span><span class="chip">REST</span></div>
+        </div>
+        <span class="label">AI shortlist · 9 CVs scored</span>
+        <ol class="rank" id="heroRank"></ol>
+        <p class="small muted">Gold = score of 80 or more. A human recruiter reviews every shortlist (POPIA section 71).</p>
+      </div>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><span class="num">47.4%</span><p>of South Africans aged 15 to 34 were unemployed in Q2 2026.</p><cite>Statistics South Africa (2026)</cite></div>
+      <div class="fact"><span class="num">3–10 hrs</span><p>of HR time go into screening CVs for a single hire.</p><cite>ShiftMate (2026a)</cite></div>
+      <div class="fact"><span class="num">15–30%</span><p>of first-year salary is what recruitment agencies usually charge.</p><cite>ShiftMate (2026a)</cite></div>
+    </div>
+
+    <div class="stack">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><h3>Post a vacancy</h3><p class="muted">Add the title, province, salary budget and the skills you need.</p></li>
+        <li><h3>AI scores every CV</h3><p class="muted">Each candidate gets a score out of 100 for skills, experience, location and salary fit.</p></li>
+        <li><h3>Review the shortlist</h3><p class="muted">See the top candidates and why they scored as they did. Ask for headhunting if the pool is thin.</p></li>
+        <li><h3>You decide</h3><p class="muted">Interview, choose and hire. The AI recommends. People decide.</p></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section class="page" id="page-about" data-page hidden>
+  <div class="wrap stack-lg">
+    <div class="stack">
+      <span class="label">About us</span>
+      <h2>Hiring is slow for companies and unfair for job seekers. We fix both.</h2>
+      <p>South African companies receive hundreds of CVs for one advert, and HR teams lose days reading them. At the same time, 8.5 million people are unemployed and young job seekers rarely hear back. HireSmart AI is an AI-powered recruitment and headhunting system that helps South African companies, especially small and medium businesses, find the right candidates for their vacancies faster and more easily. It screens and ranks every applicant with a clear, explainable score, searches our talent pool for strong candidates who did not apply, and keeps a human in charge of every hiring decision.</p>
+    </div>
+    <div class="two">
+      <div class="card"><h3>Our aim</h3><p>To cut the time and cost of hiring for South African companies while giving every job seeker, wherever they live, a fair and free chance to be seen.</p></div>
+      <div class="card"><h3>Why it matters for communities</h3><p>Faster, cheaper hiring helps small businesses grow and create jobs. Free profiles and location-aware matching connect young people in townships and rural areas to work they would not otherwise find.</p></div>
+      <div class="card"><h3>What makes us different</h3><ul><li>Transparent scores. Candidates can ask why they scored as they did.</li><li>Rand pricing on the website. No "contact us for a quote".</li><li>Headhunting at 8%, below typical agency fees of 15% to 30%.</li><li>Data hosted in South Africa (AWS Cape Town region).</li></ul></div>
+      <div class="card"><h3>Who we are</h3><p>HireSmart AI is a student start-up from the Faculty of ICT at Tshwane University of Technology, built for the Joint Group Assignment 2026 on Digital Entrepreneurship for Sustainable Community Development.</p><p class="small muted">Team members and roles are listed in our final report.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PERSONA ================= -->
+<section class="page" id="page-persona" data-page hidden>
+  <div class="wrap stack-lg">
+    <div class="stack">
+      <span class="label">Customer personas</span>
+      <h2>Who we build for</h2>
+      <p class="muted">These people are fictional. We built them from our research so the team designs for real needs.</p>
+    </div>
+    <div class="card persona">
+      <div class="avatar" aria-hidden="true">ND</div>
+      <div class="stack">
+        <div><span class="pill sl">Paying customer</span><h3 style="margin-top:8px">Nomsa Dube, HR Manager</h3></div>
+        <dl class="kv">
+          <dt>Age</dt><dd>38</dd>
+          <dt>Company</dt><dd>A 45-person logistics SME in Midrand, Gauteng</dd>
+          <dt>Hiring</dt><dd>2 to 3 roles a month: drivers, admin clerks, a junior developer</dd>
+          <dt>Pain</dt><dd>One Pnet advert brings 300+ CVs. She spends two days screening. Agencies want 20% of the salary.</dd>
+          <dt>Goal</dt><dd>A shortlist of 5 good candidates within a week, on a fixed monthly budget</dd>
+          <dt>Tools</dt><dd>Laptop, Microsoft 365, WhatsApp, LinkedIn</dd>
+          <dt>Our plan</dt><dd>Growth at <span class="mono">R3,999</span>/month, plus headhunting for the developer role</dd>
+        </dl>
+        <p><em>"I don't need more CVs. I need the right five."</em></p>
+      </div>
+    </div>
+    <div class="card persona">
+      <div class="avatar alt" aria-hidden="true">SM</div>
+      <div class="stack">
+        <div><span class="pill good">Free user</span><h3 style="margin-top:8px">Sipho Mahlangu, Job Seeker</h3></div>
+        <dl class="kv">
+          <dt>Age</dt><dd>23</dd>
+          <dt>Home</dt><dd>Soshanguve, Gauteng</dd>
+          <dt>Education</dt><dd>Diploma in IT from TUT. Knows Java, SQL and Git.</dd>
+          <dt>Pain</dt><dd>Applies for 20 jobs a week and hears nothing back. Data is expensive.</dd>
+          <dt>Goal</dt><dd>His first job in IT, close to home or on a taxi route</dd>
+          <dt>Device</dt><dd>Entry-level Android phone with prepaid data</dd>
+          <dt>Our offer</dt><dd>Free profile, job alerts and a clear score that shows which skill to learn next</dd>
+        </dl>
+        <p><em>"Just tell me what I'm missing, and I'll learn it."</em></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SERVICES ================= -->
+<section class="page" id="page-services" data-page hidden>
+  <div class="wrap stack-lg">
+    <div class="stack">
+      <span class="label">Products and services</span>
+      <h2>Everything a small HR team needs to hire well</h2>
+    </div>
+    <div class="svc">
+      <div class="card"><h3>AI CV screening</h3><p class="muted">Every application is scored out of 100 and ranked. Scores of 80 or more go to your shortlist.</p></div>
+      <div class="card"><h3>Headhunting</h3><p class="muted">We search our talent pool for strong candidates who did not apply. Pay 8% of annual salary, only when you hire.</p></div>
+      <div class="card"><h3>Thandi, the assistant</h3><p class="muted">A chatbot that answers employer and job seeker questions day and night. Try her: bottom right.</p></div>
+      <div class="card"><h3>Hiring reports</h3><p class="muted">Time to hire, applicants per vacancy, and shortlist rates by province to support Employment Equity reporting.</p></div>
+      <div class="card"><h3>Free job seeker profiles</h3><p class="muted">Job seekers build a profile on any phone, get alerts, and see which skills would raise their score.</p></div>
+      <div class="card"><h3>POPIA by design</h3><p class="muted">Names and ID numbers are removed before AI scoring. Data stays in South Africa. People make the final decision.</p></div>
+    </div>
+
+    <div class="two" id="engine">
+      <div class="stack">
+        <h2>Try the match engine</h2>
+        <p class="muted">This is the same scoring formula as our Java prototype, rewritten in JavaScript. Change the candidate and watch the score.</p>
+        <div class="card">
+          <span class="label">Vacancy V01 · demo</span>
+          <p><strong>Junior Java Developer</strong>, Pretoria, Gauteng. Needs 2 years' experience. Budget <span class="mono">R22,000</span> per month.</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Part</th><th class="num">Points</th><th>Rule</th></tr></thead>
+            <tbody>
+              <tr><td>Skills</td><td class="num mono">50</td><td>50 × skills matched ÷ 5</td></tr>
+              <tr><td>Experience</td><td class="num mono">25</td><td>25 × years ÷ 2, capped at 25</td></tr>
+              <tr><td>Location</td><td class="num mono">15</td><td>15 in Gauteng, 7.5 if willing to relocate</td></tr>
+              <tr><td>Salary</td><td class="num mono">10</td><td>10 within budget, 5 if up to 10% over</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+      <form class="card tool" id="matchForm" novalidate>
+        <span class="label">Candidate (example values)</span>
+        <fieldset>
+          <legend>Skills the candidate has</legend>
+          <div class="checks" id="skillChecks"></div>
+        </fieldset>
+        <div class="row">
+          <div class="field">
+            <label for="years">Years of experience</label>
+            <input type="number" id="years" min="0" max="50" step="1" value="1" inputmode="numeric">
+            <span class="err" id="yearsErr"></span>
+          </div>
+          <div class="field">
+            <label for="salary">Expected salary (R / month)</label>
+            <input type="number" id="salary" min="1000" max="500000" step="500" value="23000" inputmode="numeric">
+            <span class="err" id="salaryErr"></span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="province">Home province</label>
+            <select id="province"></select>
+          </div>
+          <div class="field" style="align-content:end">
+            <label class="checks" for="relocate"><input type="checkbox" id="relocate"> Willing to relocate</label>
+          </div>
+        </div>
+        <div class="result" aria-live="polite">
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span class="big-score" id="scoreOut">0</span><span class="muted">/ 100</span><span id="scorePill" class="pill no">Not shortlisted</span></div>
+          <div class="break" id="breakOut"></div>
+          <p class="small muted" id="tipOut"></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CV CHECK ================= -->
+<section class="page" id="page-cv" data-page hidden>
+  <div class="wrap stack-lg">
+    <div class="stack">
+      <span class="label">For job seekers · free</span>
+      <h2>Check my CV: do I qualify?</h2>
+      <p class="muted">Upload your CV as a PDF. HireSmart AI reads it, finds your skills, experience, province and expected salary, then scores you against our open vacancies. You check the details before we score them.</p>
+      <div class="note"><strong>Your CV stays on your device.</strong> We read it inside your browser. It is never uploaded or saved (POPIA). The vacancies below are demo vacancies.</div>
+    </div>
+
+    <div class="cv-grid">
+      <!-- Step 1 and 2 -->
+      <div class="stack">
+        <div class="card stack">
+          <span class="label">Step 1 · Choose a vacancy</span>
+          <div class="field">
+            <label for="cvVacancy">Vacancy</label>
+            <select id="cvVacancy"></select>
+          </div>
+          <div id="cvVacancyInfo" class="small muted"></div>
+        </div>
+
+        <div class="card stack">
+          <span class="label">Step 2 · Add your CV</span>
+          <label class="drop" id="cvDrop" for="cvFile">
+            <input type="file" id="cvFile" accept="application/pdf,.pdf">
+            <strong>Drop your CV here or tap to choose a PDF</strong>
+            <span class="small muted">PDF only, up to 5 MB</span>
+          </label>
+          <div class="btn-row">
+            <button class="btn ghost" type="button" id="cvSample">No CV handy? Use a sample CV</button>
+          </div>
+          <p class="small" id="cvStatus" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <!-- Step 3 and result -->
+      <div class="stack">
+        <form class="card tool" id="cvForm" novalidate>
+          <span class="label">Step 3 · Check what we found</span>
+          <p class="small muted" id="cvFoundName">Add a CV to fill these in automatically, or fill them in yourself.</p>
+          <fieldset>
+            <legend>Skills found for this vacancy</legend>
+            <div class="checks" id="cvSkills"></div>
+          </fieldset>
+          <div class="row">
+            <div class="field">
+              <label for="cvYears">Years of experience</label>
+              <input type="number" id="cvYears" min="0" max="50" step="1" inputmode="numeric">
+              <span class="err" id="cvYearsErr"></span>
+            </div>
+            <div class="field">
+              <label for="cvSalary">Expected salary (R / month)</label>
+              <input type="number" id="cvSalary" min="1000" max="500000" step="500" inputmode="numeric">
+              <span class="err" id="cvSalaryErr"></span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="cvProvince">Home province</label>
+              <select id="cvProvince"></select>
+            </div>
+            <div class="field" style="align-content:end">
+              <label class="checks" for="cvRelocate"><input type="checkbox" id="cvRelocate"> Willing to relocate</label>
+            </div>
+          </div>
+          <button class="btn" type="submit">Check if I qualify</button>
+        </form>
+
+        <div class="card stack" id="cvResult" hidden aria-live="polite">
+          <span class="label">Your result</span>
+          <div class="verdict" id="cvVerdict"></div>
+          <div class="break" id="cvBreak"></div>
+          <div id="cvTips" class="stack small"></div>
+          <div>
+            <h3 style="font-size:1rem;margin-bottom:8px">Your match with every open vacancy</h3>
+            <div class="table-wrap"><table><thead><tr><th>Vacancy</th><th>Province</th><th class="num">Score</th><th>Result</th></tr></thead><tbody id="cvAll"></tbody></table></div>
+          </div>
+          <p class="small muted">The AI only recommends. A human recruiter makes every hiring decision, and you may ask why you scored as you did (POPIA section 71).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRICING / REVENUE MODEL ================= -->
+<section class="page" id="page-pricing" data-page hidden>
+  <div class="wrap stack-lg">
+    <div class="stack">
+      <span class="label">Revenue model</span>
+      <h2>Monthly subscriptions plus a success fee for headhunting</h2>
+      <p class="muted">Companies pay. Job seekers never pay. All prices in rand, excluding 15% VAT. Pay for 12 months upfront and save 10%. Payments by card or Instant EFT through PayFast.</p>
+    </div>
+    <div class="plans">
+      <div class="plan"><h3>Starter</h3><div class="price"><span class="mono">R1,499</span> <small>/ month</small></div><p class="muted small">Small businesses hiring now and then.</p><ul><li>3 active vacancies</li><li>AI screening and ranking</li><li>Top-10 shortlist per vacancy</li><li>Email support</li></ul></div>
+      <div class="plan featured"><span class="pill sl" style="justify-self:start">Most popular</span><h3>Growth</h3><div class="price"><span class="mono">R3,999</span> <small>/ month</small></div><p class="muted small">Growing SMEs with regular hiring.</p><ul><li>10 active vacancies</li><li>Headhunting search</li><li>Interview scheduling</li><li>Hiring reports</li></ul></div>
+      <div class="plan"><h3>Enterprise</h3><div class="price"><span class="mono">R9,999</span> <small>/ month</small></div><p class="muted small">Large employers and recruitment teams.</p><ul><li>Unlimited vacancies</li><li>Dedicated account manager</li><li>Employment Equity reports</li><li>Priority support</li></ul></div>
+    </div>
+
+    <div class="two">
+      <form class="card tool" id="quoteForm" novalidate>
+        <h3>Get a quote</h3>
+        <div class="row">
+          <div class="field"><label for="plan">Plan</label>
+            <select id="plan"><option value="1">Starter: R1,499</option><option value="2" selected>Growth: R3,999</option><option value="3">Enterprise: R9,999</option></select></div>
+          <div class="field"><label for="months">Months (1 to 36)</label>
+            <input type="number" id="months" min="1" max="36" value="12" inputmode="numeric"><span class="err" id="monthsErr"></span></div>
+        </div>
+        <div class="table-wrap"><table aria-live="polite"><tbody id="quoteOut"></tbody></table></div>
+      </form>
+      <form class="card tool" id="feeForm" novalidate>
+        <h3>Headhunting fee</h3>
+        <div class="field"><label for="hireSalary">Monthly salary of the new hire (R)</label>
+          <input type="number" id="hireSalary" min="1000" max="500000" step="500" value="20000" inputmode="numeric"><span class="err" id="hireErr"></span></div>
+        <div class="table-wrap"><table aria-live="polite"><tbody id="feeOut"></tbody></table></div>
+      </form>
+    </div>
+
+    <div class="gallery">
+      <figure><img src="img/chart4_revenue_mix.png" alt="Pie chart: Year 1 revenue of R1,182,571. Starter 32%, Growth 22%, Enterprise 10%, headhunting fees 36%." loading="lazy"><figcaption>Planned Year 1 revenue mix. Source: HireSmart AI financial model (Excel), 2026.</figcaption></figure>
+      <figure><img src="img/chart6_cost_per_hire.png" alt="Bar chart: on a R240,000 salary an agency charges R48,000 and HireSmart AI charges R19,200." loading="lazy"><figcaption>Cost per hire versus a typical agency at 20%. Agency range from ShiftMate (2026a).</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INSIGHTS ================= -->
+<section class="page" id="page-insights" data-page hidden>
+  <div class="wrap stack-lg">
+    <div class="stack">
+      <span class="label">Insights · Year 1 plan</span>
+      <h2>The numbers behind HireSmart AI</h2>
+      <p class="muted">Forecasts from our Excel model. Start-up costs are <span class="mono">R37,775</span>. We break even in month 9 and plan a Year 1 profit before tax of <span class="mono">R391,308</span> on revenue of <span class="mono">R1,182,571</span>. These are planning figures, not results.</p>
+    </div>
+    <div class="gallery">
+      <figure><img src="img/chart1_revenue_vs_costs.png" alt="Line chart: monthly revenue grows from R4,497 to R203,745 and passes costs in month 5." loading="lazy"><figcaption>Revenue passes costs in month 5.</figcaption></figure>
+      <figure><img src="img/chart2_cumulative_cash.png" alt="Line chart: cumulative cash falls to minus R135,393 in month 4 and turns positive in month 9." loading="lazy"><figcaption>The founders must fund about <span class="mono">R136,000</span> before break-even.</figcaption></figure>
+      <figure><img src="img/chart3_subscribers.png" alt="Stacked bar chart: active subscribers grow from 3 to 55 by month 12." loading="lazy"><figcaption>Subscribers grow from 3 to 55.</figcaption></figure>
+      <figure><img src="img/chart5_match_scores.png" alt="Bar chart of 20 demo candidates' match scores. Mean 76.9, median 76.3, range 55, 9 shortlisted." loading="lazy"><figcaption>Demo match scores: 9 of 20 candidates (45%) reach the shortlist.</figcaption></figure>
+    </div>
+    <div class="note">All charts were made by the HireSmart AI team in Microsoft Excel from our own model. Candidate data is fictional.</div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section class="page" id="page-contact" data-page hidden>
+  <div class="wrap two">
+    <div class="stack">
+      <span class="label">Contact</span>
+      <h2>Talk to us</h2>
+      <p>Book a demo, ask about headhunting, or tell us what your HR team needs.</p>
+      <dl class="kv">
+        <dt>Email</dt><dd class="mono">hello@hiresmartai.co.za <span class="muted small">(prototype address)</span></dd>
+        <dt>WhatsApp</dt><dd>Use the green button on the form</dd>
+        <dt>Office</dt><dd>Pretoria, Gauteng</dd>
+        <dt>Hours</dt><dd>Monday to Friday, 08:00 to 17:00</dd>
+      </dl>
+      <div class="note"><strong>Your privacy.</strong> We process personal information under the Protection of Personal Information Act (POPIA). We collect only what we need for hiring, keep it in South Africa, and delete it when you ask.</div>
+    </div>
+    <form class="card tool" id="contactForm" novalidate>
+      <h3>Request a demo</h3>
+      <p class="small muted">Our team gets your request by email straight away and replies within one working day.</p>
+      <div class="field"><label for="cName">Your name</label><input type="text" id="cName" name="name" maxlength="60" autocomplete="name"><span class="err" id="cNameErr"></span></div>
+      <div class="field"><label for="cCompany">Company</label><input type="text" id="cCompany" name="company" maxlength="60" autocomplete="organization"><span class="err" id="cCompanyErr"></span></div>
+      <div class="row">
+        <div class="field"><label for="cEmail">Work email</label><input type="email" id="cEmail" name="email" maxlength="80" autocomplete="email"><span class="err" id="cEmailErr"></span></div>
+        <div class="field"><label for="cPhone">Phone (optional)</label><input type="text" id="cPhone" name="phone" maxlength="20" autocomplete="tel" inputmode="tel"><span class="err" id="cPhoneErr"></span></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="cSize">Company size</label>
+          <select id="cSize" name="company_size"><option value="">Choose…</option><option>1 to 9 staff</option><option>10 to 49 staff</option><option>50 to 199 staff</option><option>200+ staff</option></select>
+          <span class="err" id="cSizeErr"></span></div>
+        <div class="field"><label for="cPlan">Interested in</label>
+          <select id="cPlan" name="interested_in"><option>Not sure yet</option><option>Starter (R1,499)</option><option>Growth (R3,999)</option><option>Enterprise (R9,999)</option><option>Headhunting only</option></select></div>
+      </div>
+      <div class="field"><label for="cMsg">What roles do you need to fill?</label><textarea id="cMsg" name="message" rows="3" maxlength="500"></textarea></div>
+      <input type="checkbox" name="botcheck" id="cBot" tabindex="-1" autocomplete="off" style="display:none">
+      <label class="consent small" for="cConsent"><input type="checkbox" id="cConsent"> I agree that HireSmart AI may use these details to contact me (POPIA).</label>
+      <span class="err" id="cConsentErr"></span>
+      <div class="btn-row">
+        <button class="btn" type="submit" id="cSend">Request a demo</button>
+        <a class="btn ghost" id="cWhatsApp" href="#" target="_blank" rel="noopener">Send on WhatsApp instead</a>
+      </div>
+      <p class="small" id="cDone" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+</main>
+
+<!-- ================= SOURCES (on every page) ================= -->
+<section class="wrap" id="sources" style="padding-block:8px 48px">
+  <details>
+    <summary class="label" style="cursor:pointer">Sources used on this site (Chicago author-date)</summary>
+    <ol class="refs small" style="margin-top:12px">
+      <li>Statistics South Africa. 2026. <em>Quarterly Labour Force Survey Q2 2026: Media Release.</em> 11 August. <a href="https://www.statssa.gov.za/publications/P0211/Media%20Release%20QLFS%20Q2%202026.pdf" target="_blank" rel="noopener">statssa.gov.za</a>.</li>
+      <li>ShiftMate. 2026a. "The Cost of Hiring Staff in South Africa (2026)." Updated 26 August. <a href="https://shiftmate.co.za/resources/blog/cost-of-hiring-staff-south-africa-2026" target="_blank" rel="noopener">shiftmate.co.za</a>.</li>
+      <li>ShiftMate. 2026b. "Best Recruitment Platforms in South Africa for Employers (2026)." Updated 11 October. <a href="https://shiftmate.co.za/resources/blog/best-recruitment-platforms-south-africa-employers-2026" target="_blank" rel="noopener">shiftmate.co.za</a>.</li>
+      <li>Cogger, Melissa, and Talita Laubscher. 2026. "South Africa: AI in the Workplace (2 of 6): POPIA Considerations." Bowmans, 16 September. <a href="https://bowmanslaw.com/insights/south-africa-ai-in-the-workplace-2-of-6-popia-considerations/" target="_blank" rel="noopener">bowmanslaw.com</a>.</li>
+      <li>OfferZen. 2026. "Hire Developers: For Employers." <a href="https://www.offerzen.com/employers" target="_blank" rel="noopener">offerzen.com</a>.</li>
+      <li>PayFast. 2026. "Payfast Fees." <a href="https://payfast.io/fees" target="_blank" rel="noopener">payfast.io</a>.</li>
+      <li>SARS. 2026. "Value-Added Tax." <a href="https://www.sars.gov.za/tax-types/value-added-tax/" target="_blank" rel="noopener">sars.gov.za</a>.</li>
+      <li>Stormacq, Sébastien. 2020. "Now Open: AWS Africa (Cape Town) Region." AWS News Blog, 22 April. <a href="https://aws.amazon.com/blogs/aws/now-open-aws-africa-cape-town-region" target="_blank" rel="noopener">aws.amazon.com</a>.</li>
+    </ol>
+  </details>
+</section>
+
+<footer>
+  <div class="wrap">
+    <strong style="color:var(--ink)">HireSmart AI</strong>
+    <span>Student prototype for the TUT Faculty of ICT Joint Group Assignment 2026. Not a registered company. All candidates, companies and contact details on this site are fictional demo data.</span>
+    <span>Secured with HTTPS. CVs are read in your browser and never uploaded. Demo requests are emailed to our team only and used only to contact you.</span>
+  </div>
+</footer>
+
+<button class="btn chat-toggle" id="chatToggle" aria-expanded="false" aria-controls="chatBox">Ask Thandi</button>
+<div class="chat" id="chatBox" role="dialog" aria-label="Chat with Thandi" hidden>
+  <header><div><strong>Thandi</strong><div class="small muted">HireSmart AI assistant · demo</div></div><button class="icon-btn" id="chatClose" aria-label="Close chat">×</button></header>
+  <div class="log" id="chatLog" aria-live="polite"></div>
+  <form id="chatForm"><input type="text" id="chatInput" placeholder="Ask about prices, POPIA…" maxlength="200" aria-label="Your question"><button class="btn" type="submit" style="padding:10px 14px">Send</button></form>
+</div>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+/* ===== Shared business rules (same as the Java prototype) ===== */
+const PROVINCES = ["Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo","Mpumalanga","North West","Northern Cape","Western Cape"];
+const VACANCY = { title: "Junior Java Developer", province: "Gauteng", requiredYears: 2, budget: 22000, skills: ["Java","SQL","Spring Boot","Git","REST"] };
+const THRESHOLD = 80;
+const rand = (n, dp = 2) => "R" + n.toLocaleString("en-ZA", { minimumFractionDigits: dp, maximumFractionDigits: dp }).replace(/ /g, ",").replace(/\s/g, ",");
+
+function scoreParts(vac, c) {
+  const matched = vac.skills.filter(s => c.skills.some(k => k.toLowerCase() === s.toLowerCase())).length;
+  const skills = 50 * matched / vac.skills.length;
+  const exp = 25 * Math.min(vac.requiredYears === 0 ? 1 : c.years / vac.requiredYears, 1);
+  const loc = c.province === vac.province ? 15 : (c.relocate ? 7.5 : 0);
+  const sal = c.salary <= vac.budget ? 10 : (c.salary <= vac.budget * 1.1 ? 5 : 0);
+  return { matched, skills, exp, loc, sal, total: skills + exp + loc + sal };
+}
+
+/* ===== Hero shortlist ===== */
+const DEMO = [
+  ["Thabo Mokoena","Gauteng",false,3,21000,"Java,SQL,Spring Boot,Git,REST"],
+  ["Ayesha Patel","KwaZulu-Natal",true,2,20000,"Java,SQL,Git,REST,Python"],
+  ["Johan van Wyk","Western Cape",false,4,28000,"Java,SQL,Spring Boot,Git,REST,Docker"],
+  ["Lerato Dlamini","Gauteng",false,1,15000,"Java,SQL,Git,Excel"],
+  ["Sipho Nkosi","Mpumalanga",true,2,22000,"Java,SQL,Spring Boot,Git,REST"],
+  ["Naledi Khumalo","Gauteng",false,0,12000,"Java,Excel,Communication"],
+  ["Pieter Botha","Free State",false,5,30000,"Java,SQL,Spring Boot,REST,Angular"],
+  ["Zanele Mahlangu","Gauteng",false,2,23500,"Java,Spring Boot,Git,REST"],
+  ["Fatima Adams","Western Cape",true,3,17500,"Excel,Sage Payroll,Communication"]
+].map(([name, province, relocate, years, salary, s]) => ({ name, province, relocate, years, salary, skills: s.split(",") }));
+
+(function renderHero() {
+  const ranked = DEMO.map(c => ({ c, s: scoreParts(VACANCY, c).total })).sort((a, b) => b.s - a.s).slice(0, 6);
+  document.getElementById("heroRank").innerHTML = ranked.map((r, i) => `
+    <li class="${r.s >= THRESHOLD ? "sl" : ""}">
+      <span class="mono muted">${i + 1}</span>
+      <span><span>${r.c.name}</span> <span class="muted small">· ${r.c.province}</span><div class="bar"><span style="width:${r.s}%"></span></div></span>
+      <span class="score">${r.s.toFixed(1)}</span>
+    </li>`).join("");
+})();
+
+/* ===== Match engine demo ===== */
+const skillBox = document.getElementById("skillChecks");
+skillBox.innerHTML = VACANCY.skills.map((s, i) =>
+  `<label for="sk${i}"><input type="checkbox" id="sk${i}" value="${s}" ${i < 3 ? "checked" : ""}> ${s}</label>`).join("");
+const prov = document.getElementById("province");
+prov.innerHTML = PROVINCES.map(p => `<option ${p === "Limpopo" ? "selected" : ""}>${p}</option>`).join("");
+document.getElementById("relocate").checked = true;
+
+function readWhole(id, min, max, errId, msg) {
+  const el = document.getElementById(id), err = document.getElementById(errId);
+  const v = Number(el.value);
+  const ok = el.value.trim() !== "" && Number.isFinite(v) && v >= min && v <= max && (id !== "years" && id !== "months" || Number.isInteger(v));
+  el.setAttribute("aria-invalid", ok ? "false" : "true");
+  err.textContent = ok ? "" : msg;
+  return ok ? v : null;
+}
+
+function updateMatch() {
+  const years = readWhole("years", 0, 50, "yearsErr", "Enter whole years from 0 to 50.");
+  const salary = readWhole("salary", 1000, 500000, "salaryErr", "Enter an amount from R1,000 to R500,000.");
+  if (years === null || salary === null) return;
+  const c = { years, salary, province: prov.value, relocate: document.getElementById("relocate").checked,
+    skills: [...skillBox.querySelectorAll("input:checked")].map(i => i.value) };
+  const p = scoreParts(VACANCY, c);
+  document.getElementById("scoreOut").textContent = p.total.toFixed(1);
+  const pill = document.getElementById("scorePill");
+  const sl = p.total >= THRESHOLD;
+  pill.className = "pill " + (sl ? "sl" : "no");
+  pill.textContent = sl ? "Shortlisted" : "Not shortlisted";
+  const rows = [["Skills " + p.matched + "/5", p.skills, 50], ["Experience", p.exp, 25], ["Location", p.loc, 15], ["Salary fit", p.sal, 10]];
+  document.getElementById("breakOut").innerHTML = rows.map(([n, v, m]) =>
+    `<div><span>${n}</span><span class="bar"><span style="width:${v / m * 100}%"></span></span><span class="mono" style="text-align:right">${v.toFixed(1)}</span></div>`).join("");
+  const missing = VACANCY.skills.filter(s => !c.skills.includes(s));
+  document.getElementById("tipOut").textContent = missing.length
+    ? "Tip for the candidate: learning " + missing[0] + " adds " + (50 / 5).toFixed(0) + " points."
+    : "All five skills matched.";
+}
+document.getElementById("matchForm").addEventListener("input", updateMatch);
+document.getElementById("matchForm").addEventListener("submit", e => e.preventDefault());
+updateMatch();
+
+/* ===== Quote and fee calculators ===== */
+const PRICES = { 1: 1499, 2: 3999, 3: 9999 }, VAT = 0.15, DISCOUNT = 0.10;
+function updateQuote() {
+  const months = readWhole("months", 1, 36, "monthsErr", "Enter whole months from 1 to 36.");
+  const out = document.getElementById("quoteOut");
+  if (months === null) { out.innerHTML = ""; return; }
+  const gross = PRICES[document.getElementById("plan").value] * months;
+  const disc = months >= 12 ? gross * DISCOUNT : 0;
+  const sub = gross - disc, vat = sub * VAT;
+  out.innerHTML = [["Price × " + months + " months", gross], ["Annual discount (10%)", -disc], ["Subtotal excl. VAT", sub], ["VAT (15%)", vat], ["<strong>Total incl. VAT</strong>", sub + vat]]
+    .map(([k, v]) => `<tr><td>${k}</td><td class="num mono">${v < 0 ? "-" + rand(-v) : rand(v)}</td></tr>`).join("");
+}
+function updateFee() {
+  const m = readWhole("hireSalary", 1000, 500000, "hireErr", "Enter an amount from R1,000 to R500,000.");
+  const out = document.getElementById("feeOut");
+  if (m === null) { out.innerHTML = ""; return; }
+  const annual = m * 12, ours = annual * 0.08, agency = annual * 0.20;
+  out.innerHTML = [["Annual salary", annual], ["HireSmart AI fee (8%)", ours], ["Typical agency fee (20%)", agency], ["<strong>You save</strong>", agency - ours]]
+    .map(([k, v]) => `<tr><td>${k}</td><td class="num mono">${rand(v)}</td></tr>`).join("");
+}
+document.getElementById("quoteForm").addEventListener("input", updateQuote);
+document.getElementById("feeForm").addEventListener("input", updateFee);
+["quoteForm", "feeForm"].forEach(id => document.getElementById(id).addEventListener("submit", e => e.preventDefault()));
+updateQuote(); updateFee();
+
+/* ===== SETTINGS: change these two values to receive demo requests ===== */
+const CONFIG = {
+  // 1. Get a free key at https://web3forms.com (enter your email, the key arrives by email). Paste it here.
+  WEB3FORMS_ACCESS_KEY: "PASTE-YOUR-WEB3FORMS-KEY-HERE",
+  // 2. Your WhatsApp number in international format, no + or spaces. Example: 0821234567 becomes 27821234567
+  WHATSAPP_NUMBER: "27000000000"
+};
+
+/* ===== Contact form: validates, then emails the request to the team ===== */
+const contactForm = document.getElementById("contactForm");
+function validateContact() {
+  const checks = [
+    ["cName", v => v.trim().length >= 2, "Enter your name."],
+    ["cCompany", v => v.trim().length >= 2, "Enter your company name."],
+    ["cEmail", v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()), "Enter an email like name@company.co.za."],
+    ["cPhone", v => v.trim() === "" || /^[+0-9 ()-]{9,20}$/.test(v.trim()), "Enter a phone number like 082 123 4567."],
+    ["cSize", v => v !== "", "Choose your company size."]
+  ];
+  let ok = true;
+  checks.forEach(([id, test, msg]) => {
+    const el = document.getElementById(id), pass = test(el.value);
+    el.setAttribute("aria-invalid", pass ? "false" : "true");
+    document.getElementById(id + "Err").textContent = pass ? "" : msg;
+    ok = ok && pass;
+  });
+  const consent = document.getElementById("cConsent").checked;
+  document.getElementById("cConsentErr").textContent = consent ? "" : "Tick the box so we may contact you.";
+  return ok && consent;
+}
+function contactSummary() {
+  const v = id => document.getElementById(id).value.trim();
+  return `Demo request for HireSmart AI\nName: ${v("cName")}\nCompany: ${v("cCompany")}\nEmail: ${v("cEmail")}\nPhone: ${v("cPhone") || "-"}\nCompany size: ${v("cSize")}\nInterested in: ${v("cPlan")}\nRoles: ${v("cMsg") || "-"}`;
+}
+document.getElementById("cWhatsApp").addEventListener("click", e => {
+  if (!validateContact()) { e.preventDefault(); return; }
+  e.currentTarget.href = "https://wa.me/" + CONFIG.WHATSAPP_NUMBER + "?text=" + encodeURIComponent(contactSummary());
+});
+contactForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const done = document.getElementById("cDone");
+  done.textContent = "";
+  if (!validateContact()) return;
+  if (document.getElementById("cBot").checked) return; // spam bots tick hidden boxes
+  if (CONFIG.WEB3FORMS_ACCESS_KEY.startsWith("PASTE")) {
+    done.textContent = "Set-up needed: the site owner must add a Web3Forms key in the CONFIG section before requests can be emailed. Use WhatsApp for now.";
+    return;
+  }
+  const send = document.getElementById("cSend");
+  send.disabled = true; send.textContent = "Sending…";
+  const v = id => document.getElementById(id).value.trim();
+  try {
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: CONFIG.WEB3FORMS_ACCESS_KEY,
+        subject: "New HireSmart AI demo request from " + v("cCompany"),
+        from_name: "HireSmart AI website",
+        name: v("cName"), email: v("cEmail"), phone: v("cPhone") || "-",
+        company: v("cCompany"), company_size: v("cSize"), interested_in: v("cPlan"),
+        message: v("cMsg") || "-", botcheck: ""
+      })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.ok && json.success !== false) {
+      done.textContent = "Thank you, " + v("cName") + ". Your request was sent. We will contact you within one working day.";
+      contactForm.reset();
+    } else {
+      done.textContent = "Your request was not sent (" + (json.message || "error " + res.status) + "). Please try again or use WhatsApp.";
+    }
+  } catch (err) {
+    done.textContent = "We could not reach the server. Check your internet connection and try again, or use WhatsApp.";
+  } finally {
+    send.disabled = false; send.textContent = "Request a demo";
+  }
+});
+
+/* ===== CV checker: reads a PDF in the browser and scores it ===== */
+const VACANCIES = [
+  { id: "V01", title: "Junior Java Developer", company: "Jacaranda Tech (demo)", province: "Gauteng", requiredYears: 2, budget: 22000, skills: ["Java", "SQL", "Spring Boot", "Git", "REST"] },
+  { id: "V02", title: "Payroll Administrator", company: "Karoo Logistics (demo)", province: "Western Cape", requiredYears: 1, budget: 18000, skills: ["Excel", "Sage Payroll", "Communication", "Attention to detail"] },
+  { id: "V03", title: "Data Analyst", company: "Highveld Analytics (demo)", province: "Gauteng", requiredYears: 2, budget: 28000, skills: ["SQL", "Excel", "Power BI", "Python", "Statistics"] },
+  { id: "V04", title: "IT Support Technician", company: "Bushveld Clinics (demo)", province: "Limpopo", requiredYears: 1, budget: 15000, skills: ["Windows", "Networking", "Troubleshooting", "Active Directory", "Customer service"] },
+  { id: "V05", title: "Call Centre Agent", company: "Umhlanga Connect (demo)", province: "KwaZulu-Natal", requiredYears: 0, budget: 9500, skills: ["Communication", "Customer service", "Computer literacy", "English", "isiZulu"] }
+];
+// Words a CV might use for each skill
+const SKILL_WORDS = {
+  "Java": ["java"], "SQL": ["sql", "mysql", "postgresql", "postgres", "oracle", "sql server", "pl/sql", "t-sql"],
+  "Spring Boot": ["spring boot", "springboot", "spring framework"], "Git": ["git", "github", "gitlab", "bitbucket"],
+  "REST": ["restful", "rest api", "rest apis", "rest services", "web services", "api development"],
+  "Excel": ["excel", "spreadsheets", "ms office", "microsoft office"], "Sage Payroll": ["sage payroll", "sage 300", "sage people", "sage vip", "vip payroll", "payroll"],
+  "Communication": ["communication", "communicator", "interpersonal"], "Attention to detail": ["attention to detail", "detail-oriented", "detail oriented", "accurate", "accuracy"],
+  "Power BI": ["power bi", "powerbi"], "Python": ["python", "pandas"], "Statistics": ["statistics", "statistical", "stats"],
+  "Windows": ["windows", "windows 10", "windows 11", "windows server"], "Networking": ["networking", "network", "lan", "wan", "tcp/ip", "routers", "switches", "ccna"],
+  "Troubleshooting": ["troubleshooting", "troubleshoot", "fault finding", "diagnose", "repairs"], "Active Directory": ["active directory", "ad users", "group policy"],
+  "Customer service": ["customer service", "client service", "customer care", "help desk", "helpdesk", "service desk"],
+  "Computer literacy": ["computer literacy", "computer literate", "ms office", "microsoft office", "word", "excel"],
+  "English": ["english"], "isiZulu": ["isizulu", "zulu"]
+};
+const PLACES = {
+  "Gauteng": ["gauteng", "pretoria", "tshwane", "johannesburg", "joburg", "soweto", "midrand", "centurion", "sandton", "soshanguve", "mamelodi", "tembisa", "ekurhuleni", "germiston", "benoni", "boksburg", "randburg", "roodepoort", "vereeniging", "vanderbijlpark", "olievenhoutbos", "atteridgeville", "ga-rankuwa", "hammanskraal", "alexandra", "kempton park"],
+  "Western Cape": ["western cape", "cape town", "stellenbosch", "paarl", "khayelitsha", "mitchells plain", "bellville", "worcester"],
+  "KwaZulu-Natal": ["kwazulu-natal", "kwazulu natal", "kzn", "durban", "pietermaritzburg", "umlazi", "richards bay", "newcastle", "umhlanga", "pinetown"],
+  "Eastern Cape": ["eastern cape", "gqeberha", "port elizabeth", "east london", "mthatha", "makhanda", "grahamstown"],
+  "Limpopo": ["limpopo", "polokwane", "thohoyandou", "tzaneen", "mokopane", "lephalale"],
+  "Mpumalanga": ["mpumalanga", "mbombela", "nelspruit", "emalahleni", "witbank", "middelburg", "secunda"],
+  "Free State": ["free state", "bloemfontein", "welkom", "bethlehem", "sasolburg"],
+  "North West": ["north west", "rustenburg", "mahikeng", "mafikeng", "potchefstroom", "klerksdorp", "brits"],
+  "Northern Cape": ["northern cape", "kimberley", "upington", "springbok"]
+};
+const esc = s => s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
+function hasWord(text, word) {
+  return new RegExp("(^|[^a-z0-9+#])" + esc(word) + "($|[^a-z0-9+#])", "i").test(text);
+}
+function findSkills(text, skills) {
+  return skills.filter(s => (SKILL_WORDS[s] || [s.toLowerCase()]).some(w => hasWord(text, w)));
+}
+function findYears(text) {
+  let best = 0;
+  // "3 years of experience", "2+ yrs"
+  for (const m of text.matchAll(/(\d{1,2})\s*\+?\s*(?:years?|yrs?)\b/gi)) {
+    const n = Number(m[1]); if (n <= 40) best = Math.max(best, n);
+  }
+  // Job date ranges like "2021 - 2024" or "March 2022 to present"
+  let total = 0;
+  const now = new Date().getFullYear();
+  for (const m of text.matchAll(/\b((?:19|20)\d{2})\s*(?:-|–|—|to)\s*((?:19|20)\d{2}|present|current|now|date)\b/gi)) {
+    const from = Number(m[1]), to = /\d/.test(m[2]) ? Number(m[2]) : now;
+    if (to >= from && to - from <= 40) total += to - from;
+  }
+  return Math.max(best, Math.min(total, 40));
+}
+function findProvince(text) {
+  let found = null, pos = Infinity;
+  for (const [prov, words] of Object.entries(PLACES)) {
+    for (const w of words) {
+      const m = new RegExp("(^|[^a-z])" + esc(w) + "($|[^a-z])", "i").exec(text);
+      if (m && m.index < pos) { pos = m.index; found = prov; }
+    }
+  }
+  return found;
+}
+function findSalary(text) {
+  const near = /(expected|salary|remuneration|ctc|asking)[^\n]{0,60}?R\s?(\d{1,3}(?:[ ,]\d{3})+|\d{4,6})/i.exec(text);
+  const any = near || /\bR\s?(\d{1,3}(?:[ ,]\d{3})+|\d{4,6})\s*(?:p\.?m\.?|per month|pm|\/month)/i.exec(text);
+  if (!any) return null;
+  const n = Number(any[any.length - 1].replace(/[ ,]/g, ""));
+  return n >= 1000 && n <= 500000 ? n : null;
+}
+function findName(text) {
+  const line = text.split("\n").map(l => l.trim()).find(l => /^[A-Za-z][A-Za-z' -]{3,40}$/.test(l) && l.split(" ").length <= 4 && !/curriculum|vitae|resume|cv\b/i.test(l));
+  return line || null;
+}
+
+let cvText = "";
+const cvSel = document.getElementById("cvVacancy");
+cvSel.innerHTML = VACANCIES.map(v => `<option value="${v.id}">${v.title} · ${v.province}</option>`).join("");
+document.getElementById("cvProvince").innerHTML = '<option value="">Choose…</option>' + PROVINCES.map(p => `<option>${p}</option>`).join("");
+const vac = () => VACANCIES.find(v => v.id === cvSel.value);
+
+function showVacancyInfo() {
+  const v = vac();
+  document.getElementById("cvVacancyInfo").innerHTML =
+    `${v.company} · needs ${v.requiredYears} year${v.requiredYears === 1 ? "" : "s"} · budget <span class="mono">${rand(v.budget, 0)}</span>/month<div class="chips" style="margin-top:8px">${v.skills.map(s => `<span class="chip">${s}</span>`).join("")}</div>`;
+  const found = cvText ? findSkills(cvText, v.skills) : [];
+  document.getElementById("cvSkills").innerHTML = v.skills.map((s, i) =>
+    `<label for="cvSk${i}"><input type="checkbox" id="cvSk${i}" value="${s}" ${found.includes(s) ? "checked" : ""}> ${s}</label>`).join("");
+  document.getElementById("cvResult").hidden = true;
+}
+cvSel.addEventListener("change", showVacancyInfo);
+
+function fillFromText(text, label) {
+  cvText = text.toLowerCase();
+  const years = findYears(text), prov = findProvince(cvText), sal = findSalary(text), name = findName(text);
+  document.getElementById("cvYears").value = years;
+  document.getElementById("cvProvince").value = prov || "";
+  document.getElementById("cvSalary").value = sal || "";
+  document.getElementById("cvFoundName").textContent =
+    (name ? "Found: " + name + ". " : "") + "Check each value and correct anything we got wrong." + (sal ? "" : " We did not find an expected salary, so please add it.");
+  showVacancyInfo();
+  document.getElementById("cvStatus").textContent = label;
+}
+
+// PDF reading with pdf.js (runs in the browser, nothing is uploaded)
+async function readPdf(file) {
+  const status = document.getElementById("cvStatus");
+  if (!file) return;
+  if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) { status.textContent = "That file is not a PDF. Save your CV as a PDF and try again."; return; }
+  if (file.size > 5 * 1024 * 1024) { status.textContent = "That PDF is bigger than 5 MB. Please use a smaller file."; return; }
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  if (!window.pdfjsLib) { status.textContent = "The PDF reader did not load. Check your internet connection and refresh the page."; return; }
+  status.textContent = "Reading " + file.name + "…";
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    let text = "";
+    for (let p = 1; p <= Math.min(pdf.numPages, 6); p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      let lastY = null;
+      for (const item of content.items) {
+        const y = item.transform ? item.transform[5] : null;
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) text += "\n";
+        text += item.str + (item.hasEOL ? "\n" : " ");
+        lastY = y;
+      }
+      text += "\n";
+    }
+    if (text.replace(/\s/g, "").length < 40) {
+      status.textContent = "We could not find text in this PDF. It may be a scanned photo. Fill in Step 3 by hand, or save your CV from Word as a PDF.";
+      return;
+    }
+    fillFromText(text, "Read " + file.name + " (" + pdf.numPages + " page" + (pdf.numPages === 1 ? "" : "s") + "). Now check Step 3.");
+  } catch (err) {
+    status.textContent = "We could not open that PDF. It may be password protected or damaged.";
+  }
+}
+document.getElementById("cvFile").addEventListener("change", e => readPdf(e.target.files[0]));
+const drop = document.getElementById("cvDrop");
+["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => readPdf(e.dataTransfer.files[0]));
+
+const SAMPLE_CV = `Sipho Mahlangu
+Soshanguve, Pretoria, Gauteng
+Curriculum Vitae
+
+Profile
+Junior developer with a Diploma in Information Technology from Tshwane University of Technology.
+Good communication skills and attention to detail.
+
+Skills
+Java, SQL (MySQL), Git and GitHub, REST APIs, HTML, CSS, Microsoft Office (Excel, Word)
+
+Experience
+IT Intern, Gauteng Provincial Government, 2024 - 2025
+Built a Java tool to track equipment. Wrote SQL reports. Helped users on the service desk.
+
+Languages
+English, isiZulu, Setswana
+
+Expected salary: R20 000 per month`;
+document.getElementById("cvSample").addEventListener("click", () => fillFromText(SAMPLE_CV, "Loaded the sample CV of Sipho Mahlangu (fictional). Now check Step 3."));
+
+document.getElementById("cvForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const years = readWhole("cvYears", 0, 50, "cvYearsErr", "Enter whole years from 0 to 50.");
+  const salary = readWhole("cvSalary", 1000, 500000, "cvSalaryErr", "Enter your expected salary from R1,000 to R500,000.");
+  if (years === null || salary === null) return;
+  const prov = document.getElementById("cvProvince").value;
+  const relocate = document.getElementById("cvRelocate").checked;
+  const ticked = [...document.querySelectorAll("#cvSkills input:checked")].map(i => i.value);
+  const v = vac();
+  const cand = { years, salary, province: prov, relocate, skills: ticked };
+  const p = scoreParts(v, cand);
+  showResult(v, cand, p);
+});
+
+function verdictFor(score) {
+  if (score >= THRESHOLD) return ["sl", "You qualify", "Strong match. You would be on the shortlist for a recruiter to review."];
+  if (score >= 60) return ["close", "Almost there", "Close match. A few changes could put you on the shortlist."];
+  return ["no", "Not a match yet", "This vacancy is not a good fit right now. See the tips and your other matches below."];
+}
+function showResult(v, cand, p) {
+  const [cls, head, sub] = verdictFor(p.total);
+  document.getElementById("cvVerdict").innerHTML =
+    `<div class="verdict-row"><span class="big-score">${p.total.toFixed(1)}</span><span class="muted">/ 100</span><span class="pill ${cls}">${head}</span></div><p>${sub}</p>`;
+  const rows = [["Skills " + p.matched + "/" + v.skills.length, p.skills, 50], ["Experience", p.exp, 25], ["Location", p.loc, 15], ["Salary fit", p.sal, 10]];
+  document.getElementById("cvBreak").innerHTML = rows.map(([n, val, m]) =>
+    `<div><span>${n}</span><span class="bar"><span style="width:${val / m * 100}%"></span></span><span class="mono" style="text-align:right">${val.toFixed(1)}</span></div>`).join("");
+  const tips = [];
+  const missing = v.skills.filter(s => !cand.skills.includes(s));
+  if (missing.length) tips.push(`<strong>Skills to add:</strong> ${missing.join(", ")}. Each one adds ${(50 / v.skills.length).toFixed(0)} points. If you already have one, name it clearly on your CV.`);
+  if (cand.years < v.requiredYears) tips.push(`<strong>Experience:</strong> this role asks for ${v.requiredYears} years and we counted ${cand.years}. List internships, part-time work and projects with their dates.`);
+  if (cand.province !== v.province && !cand.relocate) tips.push(`<strong>Location:</strong> the job is in ${v.province}. Ticking "willing to relocate" adds 7.5 points.`);
+  if (cand.salary > v.budget) tips.push(`<strong>Salary:</strong> your ask of ${rand(cand.salary, 0)} is above the budget of ${rand(v.budget, 0)}. Within 10% over still earns 5 points.`);
+  if (!tips.length) tips.push("<strong>Well done.</strong> Your CV covers everything this vacancy asks for.");
+  document.getElementById("cvTips").innerHTML = tips.map(t => `<p>${t}</p>`).join("");
+  // Score against every vacancy, using the skills found in the CV text when we have it
+  const all = VACANCIES.map(x => {
+    const skills = x.id === v.id ? cand.skills : (cvText ? findSkills(cvText, x.skills) : x.skills.filter(s => cand.skills.includes(s)));
+    const s = scoreParts(x, { ...cand, skills }).total;
+    return { x, s };
+  }).sort((a, b) => b.s - a.s);
+  document.getElementById("cvAll").innerHTML = all.map(({ x, s }) => {
+    const [c, h] = verdictFor(s);
+    return `<tr${x.id === v.id ? ' class="current"' : ""}><td>${x.title}</td><td>${x.province}</td><td class="num mono">${s.toFixed(1)}</td><td><span class="pill ${c}">${h}</span></td></tr>`;
+  }).join("");
+  const box = document.getElementById("cvResult");
+  box.hidden = false;
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+showVacancyInfo();
+
+/* ===== Thandi chatbot (same rules as HireSmartAssistant.java) ===== */
+const RULES = [
+  ["price|cost|plan|subscription|how much", "Starter is R1,499, Growth is R3,999 and Enterprise is R9,999 per month, excl. VAT. Pay for 12 months and save 10%."],
+  ["headhunt|placement|fee|agency", "Our headhunting fee is 8% of the annual salary, paid only when you hire. Agencies usually charge 15% to 30%."],
+  ["score|match|how does|ai|rank", "We score each candidate out of 100: skills 50, experience 25, location 15 and salary fit 10. Scores of 80+ are shortlisted."],
+  ["popia|privacy|data|personal|safe|secure", "We follow POPIA. Data is encrypted, stored in South Africa, and a human recruiter always makes the final decision."],
+  ["job|jobs|apply|seeker|cv|qualify|free", "Job seekers use HireSmart AI for free. Open the Check my CV page, add your CV as a PDF and see which vacancies you qualify for."],
+  ["pay|payment|payfast|eft|card", "You can pay by card or Instant EFT through PayFast."],
+  ["contact|email|phone|call|human", "Use the Request a demo form on our Contact page. Our team gets it by email and replies within one working day. You can also send it on WhatsApp."],
+  ["demo|book|trial", "Book a demo on our Contact page. Fill in the form and our team will contact you within one working day."],
+  ["hello|hi|sawubona|dumela|howzit|molo", "Sawubona! I'm Thandi, the HireSmart AI assistant. Ask me about prices, matching, checking your CV, POPIA or booking a demo."]
+];
+function reply(q) {
+  const text = q.toLowerCase().replace(/[^a-z0-9 ]/g, " ");
+  const words = text.trim().split(/\s+/);
+  for (const [keys, answer] of RULES) {
+    for (const k of keys.split("|")) {
+      const hit = k.includes(" ") ? text.includes(k) : words.some(w => k.length <= 3 ? w === k : w.startsWith(k));
+      if (hit) return answer;
+    }
+  }
+  return "Sorry, I don't know that yet. Use the Contact page and a team member will reply within one working day.";
+}
+const log = document.getElementById("chatLog"), box = document.getElementById("chatBox"), toggle = document.getElementById("chatToggle");
+function say(text, who) { const d = document.createElement("div"); d.className = "msg " + who; d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; }
+function openChat(open) {
+  box.hidden = !open; toggle.setAttribute("aria-expanded", String(open));
+  if (open && !log.children.length) {
+    say(reply("hello"), "bot");
+    const q = document.createElement("div"); q.className = "quick";
+    ["How much does it cost?", "Do I qualify for a job?", "Book a demo"].forEach(t => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = t;
+      b.addEventListener("click", () => { say(t, "me"); say(reply(t), "bot"); });
+      q.appendChild(b);
+    });
+    log.appendChild(q);
+  }
+  if (open) document.getElementById("chatInput").focus();
+}
+toggle.addEventListener("click", () => openChat(box.hidden));
+document.getElementById("chatClose").addEventListener("click", () => openChat(false));
+document.getElementById("chatForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const input = document.getElementById("chatInput"), q = input.value.trim();
+  if (!q) return;
+  say(q, "me"); say(reply(q), "bot"); input.value = "";
+});
+
+/* ===== Simple page router: #about shows the About page ===== */
+const pages = [...document.querySelectorAll("[data-page]")];
+function route() {
+  const id = (location.hash || "#home").slice(1);
+  const target = pages.find(p => p.id === "page-" + id) || pages[0];
+  pages.forEach(p => p.hidden = p !== target);
+  document.querySelectorAll("nav.main a").forEach(a => {
+    if ("#page-" + a.getAttribute("href").slice(1) === "#" + target.id) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  });
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>
